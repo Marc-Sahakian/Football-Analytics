@@ -4,13 +4,14 @@ main.py — LangChain agent using Gemini, wired to the Dixon-Coles Poisson model
 """
 
 import os
+import streamlit as st
 from dotenv import load_dotenv
 
 from langchain.agents import create_agent
 from langchain.tools import tool
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from config import SEASON, ALLOWED_SEASONS, MAJOR_LEAGUES, AS_OF_DATE
+from config import SEASON, MAJOR_LEAGUES, AS_OF_DATE
 
 from data.fetching_data import (
     find_team_id,
@@ -38,7 +39,7 @@ load_dotenv()
 
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
-    google_api_key=os.getenv("GEMINI_API_KEY"),
+    google_api_key= st.secrets["GEMINI_API_KEY"],
     temperature=0,
 )
 

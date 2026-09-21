@@ -13,6 +13,7 @@ import time
 from pathlib import Path
 import sys
 import os
+import streamlit as st
 from dotenv import load_dotenv
 
 
@@ -25,7 +26,7 @@ load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
 DB_PATH = Path(__file__).parent.parent / "football.db"
 
-API_KEY = os.getenv("SPORTS_API_KEY")
+API_KEY = st.secrets["SPORTS_API_KEY"]
 BASE_URL = "https://v3.football.api-sports.io"
 Headers = {'x-apisports-key': API_KEY}
 DELAY = 10  # seconds between API calls, stays safely under per-minute limits
