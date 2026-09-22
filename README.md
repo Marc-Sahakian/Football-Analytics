@@ -9,8 +9,8 @@ best guess.
 
 **Live app:** [https://football-analytics-bot.streamlit.app/](https://football-analytics-bot.streamlit.app/)
 
-![Match Analyst Default](docs/test%202#.png)
-![Match Analyst Question Example 1](docs/Test%201.png)
+![Match Analyst Default](docs/test_2.png)
+![Match Analyst Question Example 1](docs/test_1.png)
 ![Match Analyst Example 2](docs/image.png)
 
 
