@@ -49,7 +49,9 @@ def get_league_id(team_name: str, season: int) -> dict:
     team_result = find_team_id(team_name)
     if "error" in team_result:
         return {"error": "Could not find team"}
-    team_id = team_result["id"]  # pull the actual ID out of team_result correctly
+    if "possible_matches" in team_result:
+        return team_result  # let the agent see the ambiguity and ask the user to clarify
+    team_id = team_result["id"]
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -68,14 +70,32 @@ def get_league_id(team_name: str, season: int) -> dict:
     
     return possible_leagues[0]
 
+def resolve_league_for_team(team_name: str, season: int):
+    """
+    Resolves a team name to a single league dict {"id":, "league_name":}.
+    Handles all of get_league_id's possible return shapes in one place.
+    Prefers a domestic league over Champions League when ambiguous.
+    """
+    league = get_league_id(team_name, season)
+
+    if "error" in league:
+        return league
+    if "possible_matches" in league:
+        return league  #let the agent handle it
+    if "possible_leagues" in league:
+        leagues = league["possible_leagues"]
+        domestic = [l for l in leagues if l["league_name"] != "UEFA Champions League"]
+        return domestic[0] if domestic else leagues[0]
+    return league  
+
 
 def get_recent_form(team_name: str, season: int) -> dict:
     team_result = find_team_id(team_name)
-    
-    # what should happen here if team_result has an "error" key instead of "id"?
     if "error" in team_result:
         return {"error": "Could not find team"}
-    team_id = team_result["id"]  # pull the actual ID out of team_result correctly
+    if "possible_matches" in team_result:
+        return team_result  # let the agent see the ambiguity and ask the user to clarify
+    team_id = team_result["id"]
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT round,home_team_id, home_team_name,away_team_id, away_team_name, home_goals, away_goals FROM fixtures WHERE (home_team_id = ? OR away_team_id = ?)  AND season = ? AND timestamp < ? ORDER BY timestamp DESC limit 5",
@@ -130,8 +150,11 @@ def get_player_stats(player_id, season):
 def get_fixture_stats(team_name:str, season: int) -> dict:
     team_result = find_team_id(team_name)
     if "error" in team_result:
-        return team_result
+        return {"error": "Could not find team"}
+    if "possible_matches" in team_result:
+        return team_result  # let the agent see the ambiguity and ask the user to clarify
     team_id = team_result["id"]
+
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT home_team_name, home_goals, away_team_name, away_goals FROM fixtures WHERE (home_team_id = ? OR away_team_id = ?) AND season = ?", 
@@ -154,19 +177,18 @@ def get_standing(league_id, season):
 
 def get_season_fixtures(team_name: str, season: int, as_of_date=AS_OF_DATE) -> dict:
     """All finished fixtures for a team in a season, up to the cutoff date."""
-    league = get_league_id(team_name, season)
-    if "error" in league:
-            return {"error": "Could not find league"}
-    
-    if "possible_leagues" in league:
-        league_id = league["possible_leagues"][1]["id"]
-    else:
-        league_id = league["id"]
 
-    team = find_team_id(team_name)
-    if "error" in team:
-        return{"error": "Could not find team"}
-    team_id = team["id"]
+    league = resolve_league_for_team(team_name, season)
+    if "id" not in league:
+        return league  # error or unresolved ambiguity — bail out cleanly
+    league_id = league["id"]
+
+    team_result = find_team_id(team_name)
+    if "error" in team_result:
+        return {"error": "Could not find team"}
+    if "possible_matches" in team_result:
+        return team_result  # let the agent see the ambiguity and ask the user to clarify
+    team_id = team_result["id"]
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -190,13 +212,10 @@ def get_matchday_fixtures(team_name: str, season: int, round_name: str) -> dict:
     Get all fixtures for a specific matchday/round, e.g. 'Regular Season - 21'.
     Returns finished fixtures only, with real scores included for comparison.
     """
-    league = get_league_id(team_name, season)
-    if "error" in league:
-            return {"error": "Could not find league"}
-    if "possible_leagues" in league:
-        league_id = league["possible_leagues"][1]["id"]
-    else:
-        league_id = league["id"]
+    league = resolve_league_for_team(team_name, season)
+    if "id" not in league:
+        return league  # error or unresolved ambiguity — bail out cleanly
+    league_id = league["id"]
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT home_team_id, home_team_name, away_team_id, away_team_name, home_goals, away_goals FROM fixtures WHERE league_id = ? AND round =? AND season =?",
@@ -213,13 +232,10 @@ def get_matchday_fixtures(team_name: str, season: int, round_name: str) -> dict:
 
 def get_all_league_fixtures(league_name: str, season:str, as_of_date = AS_OF_DATE) -> dict:
 
-    league = find_league_id(league_name)
-    if "error" in league:
-            return {"error": "Could not find league"}
-    if "possible_leagues" in league:
-        league_id = league["possible_leagues"][1]["id"]
-    else:
-        league_id = league["id"]
+    league = resolve_league_for_team(team_name, season)
+    if "id" not in league:
+        return league  # error or unresolved ambiguity — bail out cleanly
+    league_id = league["id"]
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT home_team_id, home_team_name, away_team_id, away_team_name, home_goals, away_goals, season FROM fixtures WHERE league_id = ? AND timestamp < ? AND season = ?",
@@ -240,11 +256,15 @@ def get_head_to_head(team_a_name: str, team_b_name: str, as_of_date=AS_OF_DATE) 
     """Fetch h2h fixtures and return a summary: total matches, wins for each team, draws."""
     team_a = find_team_id(team_a_name)
     if "error" in team_a:
-        return team_a
+        return {"error":"Could not find team"}
+    if "possible_matches" in team_a:
+        return team_a 
     team_a_id = team_a["id"]
 
     team_b = find_team_id(team_b_name)
     if "error" in team_b:
+        return {"error": "Could not find team"}
+    if "possible_matches" in team_b:
         return team_b
     team_b_id = team_b["id"]
 
@@ -281,9 +301,12 @@ def get_head_to_head(team_a_name: str, team_b_name: str, as_of_date=AS_OF_DATE) 
 
 
 def get_team_squad(team_name: str, season: int) -> dict:
+
     team_result = find_team_id(team_name)
     if "error" in team_result:
         return {"error": "Could not find team"}
+    if "possible_matches" in team_result:
+        return team_result  # let the agent see the ambiguity and ask the user to clarify
     team_id = team_result["id"]
 
     conn = sqlite3.connect(DB_PATH)

@@ -27,6 +27,7 @@ from data.fetching_data import (
     get_all_league_fixtures,
     get_head_to_head,
     get_team_squad,
+    resolve_league_for_team,
 )
 
 from analysis.analysis import (
@@ -144,15 +145,20 @@ def get_win_probability(home_team_name: str, away_team_name: str, season: int) -
     """
     home_team = find_team_id(home_team_name)
     if "error" in home_team:
+        return {"error": "Could not find team"}
+    if "possible_matches" in home_team:
         return home_team
+    
     away_team = find_team_id(away_team_name)
     if "error" in away_team:
+        return {"error": "Could not find team"}
+    if "possible_matches" in away_team:
         return away_team
 
-    # Figure out which league this matchup is in, using the home team's league
-    league_result = get_league_id(home_team_name, season)
-    if "error" in league_result:
-        return league_result
+    league = resolve_league_for_team(team_name, season)
+    if "id" not in league:
+        return league  # error or unresolved ambiguity — bail out cleanly
+    league_result = league["id"]
 
     if "possible_leagues" in league_result:
         leagues = league_result["possible_leagues"]
