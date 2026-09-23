@@ -30,16 +30,14 @@ best guess.
 **Agent & tools.** A LangChain agent (Gemini `2.5-flash`) has access to a set
 of tools backed by a local SQLite database: team/league lookup, head-to-head
 record, recent form, squad info, and the prediction model itself. The agent
-decides which tools to call and in what order based on the question — this
-is standard tool-use / function-calling, not RAG (no embeddings or vector
-search involved; the "retrieval" here is structured SQL queries).
+decides which tools to call and in what order based on the question.
 
 **Data.** A one-time sync script pulls teams, fixtures, and player data from
 the [API-Football](https://www.api-football.com/) free tier into a local
 SQLite database, covering 5 major leagues plus the Champions League across
 the 2022, 2023, and 2024 seasons. The app queries this local database at
 runtime instead of hitting the live API — faster, and avoids the API's
-rate limits (100 requests/day, 10/minute on the free tier).
+rate limits.
 
 **The prediction model.** A from-scratch implementation of the
 [Dixon-Coles (1997)](https://www.jstor.org/stable/2986283) extension to the
