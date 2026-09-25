@@ -232,9 +232,9 @@ def get_matchday_fixtures(team_name: str, season: int, round_name: str) -> dict:
 
 def get_all_league_fixtures(league_name: str, season:str, as_of_date = AS_OF_DATE) -> dict:
 
-    league = resolve_league_for_team(team_name, season)
-    if "id" not in league:
-        return league  # error or unresolved ambiguity — bail out cleanly
+    league = find_league_id(league_name)
+    if "error" in league:
+        return league
     league_id = league["id"]
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
