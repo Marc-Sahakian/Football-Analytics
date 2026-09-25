@@ -155,7 +155,7 @@ def get_win_probability(home_team_name: str, away_team_name: str, season: int) -
     if "possible_matches" in away_team:
         return away_team
 
-    league = resolve_league_for_team(team_name, season)
+    league = resolve_league_for_team(home_team_name, season)
     if "id" not in league:
         return league  # error or unresolved ambiguity — bail out cleanly
     league_result = league["id"]
