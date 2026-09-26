@@ -157,19 +157,13 @@ def get_win_probability(home_team_name: str, away_team_name: str, season: int) -
 
     league = resolve_league_for_team(home_team_name, season)
     if "id" not in league:
-        return league  # error or unresolved ambiguity — bail out cleanly
-    league_result = league["id"]
+        return league  # error or unresolved ambiguity
+    league_name = league["league_name"]
 
-    if "possible_leagues" in league_result:
-        leagues = league_result["possible_leagues"]
-        domestic = [l for l in leagues if l["league_name"] != "UEFA Champions League"]
-        league_name = domestic[0]["league_name"] if domestic else leagues[0]["league_name"]
-    else:
-        league_name = league_result["league_name"]
-        
     if league_name not in LEAGUE_AVERAGES:
         return {"error": f"No league average data available for '{league_name}'"}
     league_avg = LEAGUE_AVERAGES[league_name]
+
 
     home_fixtures = get_season_fixtures(home_team_name, season, as_of_date=AS_OF_DATE)
     if isinstance(home_fixtures, dict) and "error" in home_fixtures:
