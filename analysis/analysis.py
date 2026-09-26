@@ -64,7 +64,7 @@ def dixon_coles_tau(home_goals, away_goals, home_expected, away_expected, rho=-0
 
 
 def calculate_win_probability_dixon_coles(home_strength, away_strength, league_avg_goals,
-                                            max_goals=6, home_advantage=1.35, rho=-0.13):
+                                            max_goals=6, home_advantage=1.35, rho=-0.2):
     """
     Full Dixon-Coles prediction: time-weighted strengths + low-score correction.
     This is the validated production model (backtested against real results,
